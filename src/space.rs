@@ -188,7 +188,7 @@ pub fn eq_macro_logic_peek(space: (usize, usize, usize), tokens: TokenStream) ->
 pub fn eq_macro_logic(space: (usize, usize, usize), mut tokens: TokenStream) -> TokenStream {
     lazy_static! {
         static ref IMPL_MULT_REGEX: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
-        static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+").unwrap();
+        static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+\.[0-9]+|[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+").unwrap();
     }
 
     let mut token_str = tokens.to_string();
@@ -198,8 +198,10 @@ pub fn eq_macro_logic(space: (usize, usize, usize), mut tokens: TokenStream) -> 
     let mut offset = 0;
 
     for mat in SIGNED_COEF_REGEX.find_iter(token_str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness")) {
-        let start = offset + mat.start() + 1;
+        let mut start = offset + mat.start();
         let end = offset + mat.end();
+
+        while let Err(_) = &token_str[start..end].replace(" ", "").parse::<f64>() { start += 1 };
 
         token_str = format!("{}({}){}", &token_str[..start], &token_str[start..end], &token_str[end..]);
 
@@ -256,7 +258,7 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
     for ref token in tokens.clone().into_iter() {
         match token {
             Punct(punct) => {
-                let mut pemdas = *PEMDAS.get(&punct.as_char()).expect(format!("char '{}' is not recognized", punct.as_char()).as_str());
+                let mut pemdas = *PEMDAS.get(&punct.as_char()).expect(format!("operator '{}' is not recognized", punct.as_char()).as_str());
 
                 if waiting_ops.len() + 1 != waiting_nums.len() {
                     waiting_nums.push(vec![String::from("0.0"); cayley.len()]);
