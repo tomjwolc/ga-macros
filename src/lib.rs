@@ -4,7 +4,7 @@ use proc_macro::*;
 mod space;
 use space::*;
 
-const SPACE: (usize, usize, usize) = (3, 0, 1);
+const SPACE: (usize, usize, usize) = (3, 0, 0);
 
 #[proc_macro]
 pub fn len(_tokens: TokenStream) -> TokenStream {

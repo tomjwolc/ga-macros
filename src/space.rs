@@ -172,12 +172,12 @@ pub fn eq_macro_logic_peek(space: (usize, usize, usize), tokens: TokenStream) ->
     */
 
     str
-        .replace("---[", "[,")
-        .replace("]---", "\n]")
-        .replace("---{", "{,")
-        .replace("}---", "\n}")
+        .replace("---[", "[")
+        .replace("]---", "]")
+        .replace("---{", "{")
+        .replace("}---", "}")
         .replace(" ", "")
-        .replace(",", ",\n    ")
+        .replace(",", ", ")
         .replace("asf64", " as f64")
         .replace("asisize", " as isize")
         .as_str()
@@ -346,33 +346,34 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
 }
 
 fn parse_ops(mut ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize, f64, f64, f64)>>) -> Vec<String> {
-    let mut num = nums.remove(nums.len() - 2); // nums.len() >= 2
+    let mut num: Vec<String>;
+    let mut accum = nums.remove(nums.len() - 1); 
     ops = ops.into_iter().rev().collect();
 
     for i in 0..ops.len() {
-        let num2 = nums.remove(nums.len() - 1); // nums.len() > ops.len()
+        num = nums.remove(nums.len() - 1); 
 
-        num = match ops[i] {
-            '!' => num2.into_iter().rev().collect(),
-            '~' => num2.iter().enumerate().map(|(i, part)| {
+        accum = match ops[i] {
+            '!' => accum.into_iter().rev().collect(),
+            '~' => accum.iter().enumerate().map(|(i, part)| {
                 let gr = get_grade(i, cayley.len()) as isize;
 
                 format!("{}.0*({})", -2 * ((gr * (gr - 1) / 2) % 2) + 1, part)
             }).collect(),
             '-' | '+' => num.iter().enumerate().map(|(j, _)| {
-                match (is_zero(&num[j]), is_zero(&num2[j])) {
+                match (is_zero(&num[j]), is_zero(&accum[j])) {
                     ( true  , true  ) => String::from("0.0"),
                     ( false , true  ) => num[j].clone(),
-                    ( true  , false ) => if ops[i] == '+' { num2[j].clone() } else { 
-                        match num2[i].parse::<f64>() {
+                    ( true  , false ) => if ops[i] == '+' { accum[j].clone() } else { 
+                        match accum[j].parse::<f64>() {
                             Ok(float) => to_float_string(-1.0 * float),
-                            Err(_) => format!("-1.0 * {}", num2[j]) 
+                            Err(_) => format!("-1.0 * {}", accum[j]) 
                         }
                     },
                     ( false , false ) => {
-                        match (num[i].parse::<f64>(), num[i].parse::<f64>()) {
+                        match (num[j].parse::<f64>(), accum[j].parse::<f64>()) {
                             (Ok(f1), Ok(f2)) => to_float_string(if ops[i] == '+' { f1 + f2 } else { f1 - f2 }),
-                            (_, _) => format!("{}{}{}", num[i], ops[i], num2[i])
+                            (_, _) => format!("{}{}{}", num[j], ops[i], accum[j])
                         }
                     }
                 }
@@ -380,30 +381,30 @@ fn parse_ops(mut ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(u
             '*' | '|' | '&' => {
                 let mut res = vec![String::from("0.0"); cayley.len()];
 
-                mult(cayley, ops[i], &num, &num2, &mut res);
+                mult(cayley, ops[i], &num, &accum, &mut res);
 
                 res
             },
             '%' => {
                 let mut res = vec![String::from("0.0"); cayley.len()];
 
-                mult(cayley, '&', &num.into_iter().rev().collect(), &num2.into_iter().rev().collect(), &mut res);
+                mult(cayley, '&', &num.into_iter().rev().collect(), &accum.into_iter().rev().collect(), &mut res);
 
                 res.into_iter().rev().collect()
             },
             '/' => {
-                if !num2[1..].iter().all(|part| is_zero(part)) { 
-                    panic!("Divisor: {:?} is not a real number", num2);
+                if !accum[1..].iter().all(|part| is_zero(part)) { 
+                    panic!("Divisor: {:?} is not a real number", accum);
                 }
 
                 let mut res = vec![String::from("0.0"); cayley.len()];
                 let mut multi = vec![String::from("0.0"); cayley.len()];
 
                 multi[0] = 
-                    if let Ok(float) = num2[0].parse::<f64>() {
+                    if let Ok(float) = accum[0].parse::<f64>() {
                         (1.0 / float).to_string()
                     } else {
-                        format!("(1.0 / ({}))", num2[0])
+                        format!("(1.0 / ({}))", accum[0])
                     };
 
 
@@ -413,20 +414,20 @@ fn parse_ops(mut ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(u
                 
             },
             '@' => {
-                get_grade_slice(num, num2[0].parse::<f64>().expect("Expected an explicit integer as the second parameter for @") as usize, cayley.len())
+                get_grade_slice(num, accum[0].parse::<f64>().expect("Expected an explicit integer as the second parameter for @") as usize, cayley.len())
             },
-            _ => num
+            _ => accum
         };
 
-        num = match ops.get(i + 1) {
-            Some(next_op) if PEMDAS.get(next_op).unwrap() < PEMDAS.get(&ops[i]).unwrap() => num,
-            Some(&next_op) if next_op == ops[i] && (next_op == '+' || next_op == '*') => num,
-            None => num,
-            _ => wrap_parens(num)
+        accum = match ops.get(i + 1) {
+            Some(next_op) if PEMDAS.get(next_op).unwrap() < PEMDAS.get(&ops[i]).unwrap() => accum,
+            Some(&next_op) if next_op == ops[i] && (next_op == '+' || next_op == '*') => accum,
+            None => accum,
+            _ => wrap_parens(accum)
         };
     }
 
-    num
+    accum
 }
 
 fn mult(cayley: &Vec<Vec<(usize, f64, f64, f64)>>, op: char, v1: &Vec<String>, v2: &Vec<String>, res: &mut Vec<String>) { 

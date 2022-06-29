@@ -3,5 +3,11 @@ extern crate macros;
 
 #[test]
 pub fn tokens() {
-    println!("norm:   {:?}, \nnorm_w: {:?}, \nnorm_b: {:?}", eq!(norm(ONES @ 1)), eq!(norm_w(ONES @ 1)), eq!(norm_b(ONES @ 1)))
+    let v1 = eq!(3e0 + -2e12);
+    let v2 = eq!(2 - 6e1 + e12);
+    println!("{:?}", eq!(v1 + v2));
+
+    println!("let v1 = {};", eq_peek!(3e0 + -2e12));
+    println!("let v2 = {};", eq_peek!(2 - 6e1 + e12));
+    println!("println!(\"{{:?}}\", {:?})", eq_peek!(v1 + v2));
 }
