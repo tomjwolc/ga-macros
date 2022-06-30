@@ -28,7 +28,7 @@ pub struct A { a: [f64; len!()] }
 
 #[test]
 pub fn weird_inputs() {
-    let b: Vec<[f64; len!()]> = vec!(eq!(e2));
+    let b: Vec<[f64; len!()]> = vec![eq!(e2)];
     let c = (eq!(e01), eq!(12));
 
     assert_eq!([0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0], eq!(a.a + b[0] + c.0 + c.1));
