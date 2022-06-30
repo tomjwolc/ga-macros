@@ -189,6 +189,7 @@ pub fn eq_macro_logic(space: (usize, usize, usize), mut tokens: TokenStream) -> 
     lazy_static! {
         static ref IMPL_MULT_REGEX: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
         static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+\.[0-9]+|[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+").unwrap();
+        static ref VARIABLES_REGEX: Regex = Regex::new(r"[a-zA-Z]+\.[a-zA-Z]+|[a-zA-Z]+\[[a-zA-Z0-9\.\[\]]+\]|[a-zA-Z]+").unwrap();
     }
 
     let mut token_str = tokens.to_string();
