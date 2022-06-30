@@ -194,7 +194,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
         ).unwrap();
     }
 
-    let mut token_str = tokens.to_string();
+    let mut token_str = tokens.to_string().replace(" ", "");
 
     token_str = IMPL_MULT_REGEX.replace_all(token_str.as_str(), "*").to_string();
 

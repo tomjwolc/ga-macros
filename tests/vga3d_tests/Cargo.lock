@@ -74,7 +74,7 @@ checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
 [[package]]
 name = "macros"
 version = "0.1.0"
-source = "git+https://github.com/tomjwolc/ga-rust-macro#84a17feb0b9bf2165730606b02e7e50c432eb015"
+source = "git+https://github.com/tomjwolc/ga-rust-macro#e008c6793dc63d9fe753ba448eee4725db606747"
 dependencies = [
  "fancy-regex",
  "lazy_static",
