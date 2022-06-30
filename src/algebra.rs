@@ -334,7 +334,7 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
     
                     if !num[0].contains('.') {num[0] += ".0"}   
                 } else { // idents an array
-                    let symb = literal.to_string().replace(" ", "");
+                    let symb: String = literal.to_string().replace(" ", "").replace("\\", "");
                     
                     if symb.chars().nth(0).unwrap() == '_' { // ----------------------------------------------------- symb is a number
                         num[0] = format!("({} as f64)", &symb[1..]);
