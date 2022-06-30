@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate macros;
+use macros::*;
 
 #[test]
 pub fn simple_numbers() {

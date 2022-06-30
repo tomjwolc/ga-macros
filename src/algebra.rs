@@ -266,7 +266,7 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
                     pemdas = 5;
                 }
 
-                if pemdas <= last_pemdas {
+                if pemdas < last_pemdas {
                     waiting_nums = vec![wrap_parens(parse_ops(waiting_ops, waiting_nums, cayley))];
                     waiting_ops = Vec::new();
                 }
