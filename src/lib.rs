@@ -54,7 +54,7 @@ pub fn eq_peek(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn test_file_get(_tokens: TokenStream) -> TokenStream {
-    let temp = String::from("");
+    let temp = String::from("NONE");
     let text = if let Ok(str) = &*TEXT_RESULT { str } else { &temp };
 
     format!("\"{}\"", text.replace("\"", "\\\"")).as_str().parse().unwrap()
