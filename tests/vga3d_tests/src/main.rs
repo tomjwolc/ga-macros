@@ -1,5 +1,5 @@
 use macros::*;
 
 fn main() {
-    println!("{:?}", eq!(2));
+    println!("{:?}", test_file_get!());
 }

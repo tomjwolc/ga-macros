@@ -9,7 +9,6 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-macrotest = "1"
 phf = { version = "0.10", features = ["macros"] }
 rand = "0.8.5"
 regex = "1.5.6"

@@ -4,7 +4,14 @@ use proc_macro::*;
 mod space;
 use space::*;
 
-const SPACE: (usize, usize, usize) = (3, 0, 0); // 3D Vectorspace Geometric Algebra
+use lazy_static::lazy_static;
+use std::{env, fs};
+
+lazy_static! {
+    static ref TEXT_RESULT: Result<String, std::io::Error> = fs::read_to_string("space.json");
+
+    static ref SPACE: (usize, usize, usize) = (3, 0, 0); // 3D Vectorspace Geometric Algebra
+}
 
 #[proc_macro]
 pub fn len(_tokens: TokenStream) -> TokenStream {
@@ -37,10 +44,18 @@ pub fn get_tokens(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn eq(tokens: TokenStream) -> TokenStream {
-    eq_macro_logic(SPACE, tokens)
+    eq_macro_logic(*SPACE, tokens)
 }
 
 #[proc_macro]
 pub fn eq_peek(tokens: TokenStream) -> TokenStream {
-    eq_macro_logic_peek(SPACE, tokens)
+    eq_macro_logic_peek(*SPACE, tokens)
+}
+
+#[proc_macro]
+pub fn test_file_get(_tokens: TokenStream) -> TokenStream {
+    let temp = String::from("");
+    let text = if let Ok(str) = &*TEXT_RESULT { str } else { &temp };
+
+    format!("\"{}\"", text.replace("\"", "\\\"")).as_str().parse().unwrap()
 }

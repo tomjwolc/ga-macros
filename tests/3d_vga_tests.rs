@@ -34,3 +34,8 @@ pub fn weird_inputs() {
 
     // assert_eq!([0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0], eq!(a.a + b[0] + c.0 + c.1));
 }
+
+#[test]
+pub fn file_stuff() {
+    println!("{}", test_file_get!());
+}
