@@ -1,5 +1,5 @@
 [package]
-name = "vga3d_tests"
+name = "pga3d_tests"
 version = "0.1.0"
 edition = "2021"
 
