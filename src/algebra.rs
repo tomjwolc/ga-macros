@@ -189,7 +189,9 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
     lazy_static! {
         static ref IMPL_MULT_REGEX: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
         static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+\.[0-9]+|[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+").unwrap();
-        static ref VARIABLES_REGEX: Regex = Regex::new(r"[a-zA-Z]+\.[a-zA-Z]+|[a-zA-Z]+\[[a-zA-Z0-9\.\[\]]+\]|[a-zA-Z]+").unwrap();
+        static ref VARIABLES_AND_NUMBERS_REGEX: Regex = Regex::new(
+            r"[_a-zA-Z]+[_a-zA-Z0-9]*\.[_a-zA-Z0-9]+|[_a-zA-Z]+[_a-zA-Z0-9]*\[[_a-zA-Z0-9\.\[\]]+\]|[_a-zA-Z]+[_a-zA-Z0-9]*"
+        ).unwrap();
     }
 
     let mut token_str = tokens.to_string();
@@ -205,6 +207,17 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
         while let Err(_) = &token_str[start..end].replace(" ", "").parse::<f64>() { start += 1 };
 
         token_str = format!("{}({}){}", &token_str[..start], &token_str[start..end], &token_str[end..]);
+
+        offset += 2;
+    }
+
+    offset = 0;
+
+    for mat in VARIABLES_AND_NUMBERS_REGEX.find_iter(token_str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness 2")) {
+        let start = offset + mat.start();
+        let end = offset + mat.end();
+
+        token_str = format!("{}\"{}\"{}", &token_str[..start], &token_str[start..end], &token_str[end..]);
 
         offset += 2;
     }
@@ -276,6 +289,8 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
                 waiting_ops.push(punct.as_char());
             },
             Ident(ident) => {
+                panic!("There shouldn't be any Idents left? Ident: {:?}", ident);
+
                 // the variable is a number, not an array
                 if ident.to_string().chars().nth(0).unwrap() == '_' {
                     let mut num = vec![String::from("0.0"); cayley.len()];
@@ -313,9 +328,27 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
             },
             Literal(literal) => {
                 let mut num = vec![String::from("0.0"); cayley.len()];
-                num[0] = literal.to_string();
 
-                if !num[0].contains('.') {num[0] += ".0"}
+                if let Ok(float) = literal.to_string().parse::<f64>() { // literals
+                    num[0] = float.to_string();
+    
+                    if !num[0].contains('.') {num[0] += ".0"}   
+                } else { // idents an array
+                    let symb = literal.to_string().replace(" ", "");
+                    
+                    if symb.chars().nth(0).unwrap() == '_' { // ----------------------------------------------------- symb is a number
+                        num[0] = format!("({} as f64)", &symb[1..]);
+                    } else if let Some(index) = labels.iter().position(|label| label == &symb) { // - symb is a basis k-vector
+                        num[index] = String::from("1.0");
+                    } else if let Some(func) = EQ_CONSTS.get(symb.as_str()) { // ---------- symb is a constant
+                        num = num.iter().enumerate().map(|(i, _)| func(i)).collect();
+                    } else if let Some(func) = FUNCS.get(symb.as_str()) { // --- symb is a function
+                        function = Some(func);
+                        continue;
+                    } else { // -------------------------------------------------------------------------------------- symb is a variable
+                        num = num.iter().enumerate().map(|(i, _)| format!("{}[{}]", symb, i)).collect();
+                    }
+                }
 
                 waiting_nums.push(num);
             },
