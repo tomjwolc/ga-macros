@@ -1,6 +1,4 @@
 # ga-rust-macro
-> This is not working yet
-
 A macro for rust that expands arbitrary geometric algebra expressions to an explicitly defined number/array.
 
 Example expansion (within 3D VGA):
@@ -22,3 +20,29 @@ This library provides 5 macros:
   - **dims:** takes no input, expands to the number of dimensions used in the algebra 
   - **eq_peek:** (debug) expands expressions as seen above, but wrapped in quotes so the expansion can be veiwed
   - **get_tokens:** (debug) expands to the list of tokens taken in by the procedural macro
+
+### Eq! Operations
+- **'+'** => Addition
+- **'-'** => Subtraction
+- **'*'** => Geometric product
+- **'|'** => Inner product
+- **'&'** => Outer product/Meet
+- **'%'** => Join
+- **'>'** => Sandwich product
+- **'/'** => Division (divisor must be a real number)
+- **'@'** => Grade select (selector must a real number s.t. 0 <= n <= dims!()
+- **'~'** => Reverse
+- **'!'** => Dual
+
+### Inputting variables
+> Not implimented yet
+
+All inputed terms are assumed to be (or return) Vec<f64> or [f64; len!()] unless prefixed with: #
+
+Examples (3D VGA):
+```
+let x: usize = 5;
+let y = eq!(e1);
+
+assert_eq!([0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0], eq!(#x * y))
+```
