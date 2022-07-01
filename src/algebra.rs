@@ -147,8 +147,8 @@ static FUNCS: phf::Map<&'static str, fn(Vec<String>) -> (Vec<String>, Vec<String
 // 6 letters remove: e, t
 static DEF_ID_CHARS: &'static str = "bcdfghijklmopqrsuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"; // {e, a, n, t} gone
 
-pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream) -> TokenStream {
-    let mut str = eq_macro_logic(algebra, tokens).to_string();
+pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream, alt_labels: &Option<Vec<String>>) -> TokenStream {
+    let mut str = eq_macro_logic(algebra, tokens, alt_labels).to_string();
 
     let bound_signifiers = if str.chars().nth(0) == Some('[') || str.chars().nth(0) == Some('{') {"---"} else {""};
 
@@ -187,7 +187,7 @@ pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream) 
         .expect("eq_peek: parsing failed")
 }
 
-pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -> TokenStream {
+pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, alt_labels: &Option<Vec<String>>) -> TokenStream {
     lazy_static! {
         static ref IMPL_MULT: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
         static ref SIGNED_COEF: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
@@ -221,7 +221,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
 
     let (
         cayley, 
-        labels
+        mut labels
     ) = get_cayley(algebra);
 
     let mut token_vec: Vec<TokenTree> = tokens.into_iter().collect();
@@ -246,6 +246,8 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
     }
 
     tokens = token_vec.into_iter().collect();
+
+    labels = if let Some(arr) = alt_labels.clone() { arr } else { labels };
 
     let (defs, result) = simplify(&tokens, &cayley, &labels);
 

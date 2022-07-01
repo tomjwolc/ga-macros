@@ -31,6 +31,7 @@ pub fn weird_inputs() {
     let a = A { a: eq!(1.1) };
     let b: Vec<[f64; len!()]> = vec![eq!(1.2e0)];
     let c = (eq!(1.3e1), eq!(1.4e2));
+    let d = |e: f64, f: f64| eq!(#e * e01 + #f * e02);
 
-    assert_eq!([1.1, 1.2, 1.3, 1.4, 0.0, 0.0, 0.0, 0.0], eq!(a.a + b[0] + c.0 + c.1));
+    assert_eq!([1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 0.0, 0.0], eq!(a.a + b[0] + c.0 + c.1 + d(1.5, 1.6)));
 }
