@@ -189,42 +189,33 @@ pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream) 
 
 pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -> TokenStream {
     lazy_static! {
-        static ref IMPL_MULT_REGEX: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
-        static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
-        static ref VARIABLES_AND_NUMBERS_REGEX: Regex = Regex::new(
-            r"[_a-zA-Z]+[_a-zA-Z0-9]*\.[_a-zA-Z0-9]+|[_a-zA-Z]+[_a-zA-Z0-9]*\[[_a-zA-Z0-9\.\[\]]+\]|[_a-zA-Z]+[_a-zA-Z0-9]*"
-        ).unwrap();
+        static ref IMPL_MULT: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
+        static ref SIGNED_COEF: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
+        static ref VARIABLES_AND_NUMBERS: Regex = Regex::new(r"[#_a-zA-Z]+([_a-zA-Z0-9\.]*([\(\[][^\]\)]*[\]\)])*)*").unwrap();
+        static ref ILLEGAL_NAMES: Regex = Regex::new(r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]").unwrap();
     }
 
     let mut token_str = tokens.to_string().replace(" ", "");
 
-    token_str = IMPL_MULT_REGEX.replace_all(token_str.as_str(), "*").to_string();
+    token_str = IMPL_MULT.replace_all(token_str.as_str(), "*").to_string();
 
-    let mut offset = 0;
+    wrap_regex(
+        SIGNED_COEF.clone(), 
+        &mut token_str, 
+        ("(", ")"), 
+        |start, mut str| while let Err(_) = &str.parse::<f64>() { *start += 1; str = &str[1..] },
+        |_| true
+    );
 
-    for mat in SIGNED_COEF_REGEX.find_iter(token_str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness")) {
-        let mut start = offset + mat.start();
-        let end = offset + mat.end();
+    wrap_regex(
+        VARIABLES_AND_NUMBERS.clone(), 
+        &mut token_str, 
+        ("\"", "\""), 
+        |_, _| {},
+        |str| if let Ok(Some(_)) = ILLEGAL_NAMES.find(str) { false } else { true }
+    );
 
-        while let Err(_) = &token_str[start..end].parse::<f64>() { start += 1 };
-
-        token_str = format!("{}({}){}", &token_str[..start], &token_str[start..end], &token_str[end..]);
-
-        offset += 2;
-    }
-
-    offset = 0;
-
-    for mat in VARIABLES_AND_NUMBERS_REGEX.find_iter(token_str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness 2")) {
-        let start = offset + mat.start();
-        let end = offset + mat.end();
-
-        token_str = format!("{}\"{}\"{}", &token_str[..start], &token_str[start..end], &token_str[end..]);
-
-        offset += 2;
-    }
-
-    tokens = token_str.parse().expect("Could not parse tokens after implied multiplication and signed coeficients regexes");
+    tokens = token_str.parse().expect("Could not parse tokens after regex");
 
     // return format!("\"{}\"", tokens.to_string()).as_str().parse().unwrap();
 
@@ -356,7 +347,7 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
                 } else { // idents an array
                     let symb: String = literal.to_string().replace(" ", "").replace("\\", "").replace("\"", "");
                     
-                    if symb.chars().nth(0).unwrap() == '_' { // ----------------------------------------------------- symb is a number
+                    if &symb[0..1] == "#" { // ---------------------------------------------------------------------- symb is a number
                         num[0] = format!("({} as f64)", &symb[1..]);
                     } else if let Some(index) = labels.iter().position(|label| label == &symb) { // - symb is a basis k-vector
                         num[index] = String::from("1.0");
@@ -602,6 +593,27 @@ fn to_float_string(float: f64) -> String {
 
 fn wrap_parens(num: Vec<String>) -> Vec<String> {
     num.into_iter().map(|part| if let Ok(_) = part.parse::<f64>() { part } else if is_wrapped(&part[..]) { part } else { format!("({})", part) }).collect()
+}
+
+fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_start: fn(&mut usize, &str), conditional: fn(&str) -> bool) {
+    let mut offset = 0;
+
+    for mat in regex.find_iter(str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness")) {
+        let mut start = offset + mat.start();
+        let end = offset + mat.end();
+
+        let snippet = &str[start..end];
+
+        change_start(&mut start, snippet);
+
+        if !conditional(&str[start..end]) { continue; }
+
+        let init_size = str.len();
+
+        *str = format!("{}{}{}{}{}", &str[..start], wrapper.0, &str[start..end], wrapper.1, &str[end..]);
+
+        offset += str.len() - init_size;
+    }
 }
 
 fn is_wrapped(mut str: &str) -> bool {
