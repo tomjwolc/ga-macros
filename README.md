@@ -1,4 +1,4 @@
-# ga-rust-macro
+# ga-macros
 A macro for rust that expands arbitrary geometric algebra expressions to an explicitly defined number/array.
 
 Example expansion (within 3D VGA):
@@ -35,8 +35,6 @@ This library provides 5 macros:
 - **'!'** => Dual
 
 ### Inputting variables
-> Not implimented yet
-
 All inputed terms are assumed to be (or return) Vec<f64> or [f64; len!()] unless prefixed with: #
 
 Examples (3D VGA):
