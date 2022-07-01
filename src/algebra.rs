@@ -8,12 +8,14 @@ use phf::phf_map;
 use rand::prelude::*;
 
 use std::f64::consts::*;
+use std::ops;
 
 use fancy_regex::Regex;
 
 use lazy_static::lazy_static;
 
 static PEMDAS: phf::Map<char, usize> = phf_map! {
+    'd' => 0, // dummy 
     '+' => 1,
     '-' => 1,
     '*' => 2,
@@ -188,7 +190,7 @@ pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream) 
 pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -> TokenStream {
     lazy_static! {
         static ref IMPL_MULT_REGEX: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
-        static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+\.[0-9]+|[^0-9a-zA-Z ][ ]*[+-][ ]*[0-9]+").unwrap();
+        static ref SIGNED_COEF_REGEX: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
         static ref VARIABLES_AND_NUMBERS_REGEX: Regex = Regex::new(
             r"[_a-zA-Z]+[_a-zA-Z0-9]*\.[_a-zA-Z0-9]+|[_a-zA-Z]+[_a-zA-Z0-9]*\[[_a-zA-Z0-9\.\[\]]+\]|[_a-zA-Z]+[_a-zA-Z0-9]*"
         ).unwrap();
@@ -204,7 +206,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
         let mut start = offset + mat.start();
         let end = offset + mat.end();
 
-        while let Err(_) = &token_str[start..end].replace(" ", "").parse::<f64>() { start += 1 };
+        while let Err(_) = &token_str[start..end].parse::<f64>() { start += 1 };
 
         token_str = format!("{}({}){}", &token_str[..start], &token_str[start..end], &token_str[end..]);
 
@@ -263,9 +265,9 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream) -
 }
 
 fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, labels: &Vec<String>) -> (Vec<String>, Vec<String>) {
-    let mut waiting_ops: Vec<char> = Vec::new();
-    let mut waiting_nums: Vec<Vec<String>> = Vec::new();
-    let mut last_pemdas: usize = 0;
+    let mut ops_blocks: Vec<Vec<char>> = vec![vec!['d']];
+    let mut nums_blocks: Vec<Vec<Vec<String>>> = vec![vec![Vec::new()]];
+    let mut last_index: usize = 0;
     let mut function: Option<&fn(Vec<String>) -> (Vec<String>, Vec<String>)> = None;
     let mut definitions: Vec<String> = Vec::new();
 
@@ -273,58 +275,76 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
         match token {
             Punct(punct) => {
                 let mut pemdas = *PEMDAS.get(&punct.as_char()).expect(format!("operator '{}' is not recognized", punct.as_char()).as_str());
+                let mut last_pemdas = *PEMDAS.get(&ops_blocks[last_index][0]).expect(format!("operator '{}' is not recognized", punct.as_char()).as_str());
 
-                if waiting_ops.len() + 1 != waiting_nums.len() {
-                    waiting_nums.push(vec![String::from("0.0"); cayley.len()]);
+                if ops_blocks[last_index].len() + 1 != nums_blocks[last_index].len() {
+                    nums_blocks[last_index].push(vec![String::from("0.0"); cayley.len()]);
                     pemdas = 5;
                 }
 
-                if pemdas < last_pemdas {
-                    waiting_nums = vec![wrap_parens(parse_ops(waiting_ops, waiting_nums, cayley))];
-                    waiting_ops = Vec::new();
+                while pemdas < last_pemdas { // calculate everything of higher pemdas first
+                    let ops = ops_blocks.remove(last_index);
+                    let nums = nums_blocks.remove(last_index);
+
+                    nums_blocks[last_index - 1].push(parse_ops(
+                        ops, 
+                        nums, 
+                        cayley
+                    ));
+
+                   last_index -= 1;
+
+                   last_pemdas = *PEMDAS.get(&ops_blocks[last_index][0]).expect(format!("operator '{}' is not recognized in while loop", punct.as_char()).as_str());
                 }
 
-                last_pemdas = pemdas;
+                if pemdas > last_pemdas { // ------------------------------------------------------------------ Increase in pemdas
+                    let last_num_block_len = nums_blocks[last_index].len();
+                    let last_num = nums_blocks[last_index].remove(last_num_block_len - 1);
 
-                waiting_ops.push(punct.as_char());
+                    ops_blocks.push(Vec::new());
+                    nums_blocks.push(vec![last_num]);
+                    last_index += 1;
+                }
+
+                ops_blocks[last_index].push(punct.as_char());
             },
             Ident(ident) => {
                 panic!("There shouldn't be any Idents left? Ident: {:?}", ident);
 
-                // the variable is a number, not an array
-                if ident.to_string().chars().nth(0).unwrap() == '_' {
-                    let mut num = vec![String::from("0.0"); cayley.len()];
-                    num[0] = format!("({} as f64)", &ident.to_string()[1..]);
-                    waiting_nums.push(num);
-                    continue;
-                }
+                // // the variable is a number, not an array
+                // if ident.to_string().chars().nth(0).unwrap() == '_' {
+                //     let mut num = vec![String::from("0.0"); cayley.len()];
+                //     num[0] = format!("({} as f64)", &ident.to_string()[1..]);
+                //     nums_blocks[last_index].push(num);
+                //     continue;
+                // }
 
-                // the ident matches a basis k-vector label
-                if let Some(index) = labels.iter().position(|label| label == &ident.to_string()) {
-                    let mut num = vec![String::from("0.0"); cayley.len()];
-                    num[index] = String::from("1.0");
-                    waiting_nums.push(num);
-                    continue;
-                }
+                // // the ident matches a basis k-vector label
+                // if let Some(index) = labels.iter().position(|label| label == &ident.to_string()) {
+                //     let mut num = vec![String::from("0.0"); cayley.len()];
+                //     num[index] = String::from("1.0");
+                //     nums_blocks[last_index].push(num);
+                //     continue;
+                // }
 
-                // the ident is a constant
-                if let Some(func) = EQ_CONSTS.get(ident.to_string().as_str()) {
-                    let mut num = vec![String::from("0.0"); cayley.len()];
-                    num = num.iter().enumerate().map(|(i, _)| func(i)).collect();
-                    waiting_nums.push(num);
-                    continue;
-                }
+                // // the ident is a constant
+                // if let Some(func) = EQ_CONSTS.get(ident.to_string().as_str()) {
+                //     let mut num = vec![String::from("0.0"); cayley.len()];
+                //     num = num.iter().enumerate().map(|(i, _)| func(i)).collect();
+                //     nums_blocks[last_index].push(num);
+                //     continue;
+                // }
 
-                // the ident is a function
-                if let Some(func) = FUNCS.get(ident.to_string().as_str()) {
-                    function = Some(func);
-                    continue;
-                }
+                // // the ident is a function
+                // if let Some(func) = FUNCS.get(ident.to_string().as_str()) {
+                //     function = Some(func);
+                //     continue;
+                // }
 
-                let symb = ident.to_string();
-                let num: Vec<String> = vec![0.0; cayley.len()].iter().enumerate().map(|(i, _)| format!("{}[{}]", symb, i)).collect();
+                // let symb = ident.to_string();
+                // let num: Vec<String> = vec![0.0; cayley.len()].iter().enumerate().map(|(i, _)| format!("{}[{}]", symb, i)).collect();
 
-                waiting_nums.push(num);
+                // nums_blocks[last_index].push(num);
             },
             Literal(literal) => {
                 let mut num = vec![String::from("0.0"); cayley.len()];
@@ -350,7 +370,7 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
                     }
                 }
 
-                waiting_nums.push(num);
+                nums_blocks[last_index].push(num);
             },
             Group(group) => {
                 let (mut defs, mut num) = simplify(&group.stream(), cayley, labels);
@@ -369,47 +389,55 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
                     definitions.append(&mut defs)
                 }
 
-                waiting_nums.push(num);
+                nums_blocks[last_index].push(num);
             }
         };
     }
 
-    if waiting_ops.len() > 0 {
-        waiting_nums = vec![parse_ops(waiting_ops, waiting_nums, cayley)];
+    while last_index > 0 { // calculate everything of higher pemdas first
+        let ops = ops_blocks.remove(last_index);
+        let nums = nums_blocks.remove(last_index);
+
+        nums_blocks[last_index - 1].push(parse_ops(
+            ops, 
+            nums, 
+            cayley
+        ));
+
+       last_index -= 1;
     }
 
-    (definitions, waiting_nums.remove(0))
+    (definitions, nums_blocks[0].remove(1))
 }
 
-fn parse_ops(mut ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize, f64, f64, f64)>>) -> Vec<String> {
+fn parse_ops(ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize, f64, f64, f64)>>) -> Vec<String> {
     let mut num: Vec<String>;
-    let mut accum = nums.remove(nums.len() - 1); 
-    ops = ops.into_iter().rev().collect();
+    let mut accum = nums.remove(0); 
 
     for i in 0..ops.len() {
-        num = nums.remove(nums.len() - 1); 
+        num = nums.remove(0); 
 
         accum = match ops[i] {
-            '!' => accum.into_iter().rev().collect(),
-            '~' => accum.iter().enumerate().map(|(i, part)| {
+            '!' => num.into_iter().rev().collect(),
+            '~' => num.iter().enumerate().map(|(i, part)| {
                 let gr = get_grade(i, cayley.len()) as isize;
 
                 format!("{}.0*({})", -2 * ((gr * (gr - 1) / 2) % 2) + 1, part)
             }).collect(),
             '-' | '+' => num.iter().enumerate().map(|(j, _)| {
-                match (is_zero(&num[j]), is_zero(&accum[j])) {
+                match (is_zero(&accum[j]), is_zero(&num[j])) {
                     ( true  , true  ) => String::from("0.0"),
-                    ( false , true  ) => num[j].clone(),
-                    ( true  , false ) => if ops[i] == '+' { accum[j].clone() } else { 
-                        match accum[j].parse::<f64>() {
+                    ( false , true  ) => accum[j].clone(),
+                    ( true  , false ) => if ops[i] == '+' { num[j].clone() } else { 
+                        match num[j].parse::<f64>() {
                             Ok(float) => to_float_string(-1.0 * float),
-                            Err(_) => format!("-1.0 * {}", accum[j]) 
+                            Err(_) => format!("-1.0 * {}", num[j]) 
                         }
                     },
                     ( false , false ) => {
-                        match (num[j].parse::<f64>(), accum[j].parse::<f64>()) {
+                        match (accum[j].parse::<f64>(), num[j].parse::<f64>()) {
                             (Ok(f1), Ok(f2)) => to_float_string(if ops[i] == '+' { f1 + f2 } else { f1 - f2 }),
-                            (_, _) => format!("{}{}{}", num[j], ops[i], accum[j])
+                            (_, _) => format!("{}{}{}", accum[j], ops[i], num[j])
                         }
                     }
                 }
@@ -417,40 +445,40 @@ fn parse_ops(mut ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(u
             '*' | '|' | '&' => {
                 let mut res = vec![String::from("0.0"); cayley.len()];
 
-                mult(cayley, ops[i], &num, &accum, &mut res);
+                mult(cayley, ops[i], &accum, &num, &mut res);
 
                 res
             },
             '%' => {
                 let mut res = vec![String::from("0.0"); cayley.len()];
 
-                mult(cayley, '&', &num.into_iter().rev().collect(), &accum.into_iter().rev().collect(), &mut res);
+                mult(cayley, '&', &accum.into_iter().rev().collect(), &num.into_iter().rev().collect(), &mut res);
 
                 res.into_iter().rev().collect()
             },
             '/' => {
-                if !accum[1..].iter().all(|part| is_zero(part)) { 
-                    panic!("Divisor: {:?} is not a real number", accum);
+                if !num[1..].iter().all(|part| is_zero(part)) { 
+                    panic!("Divisor: {:?} is not a real number", num);
                 }
 
                 let mut res = vec![String::from("0.0"); cayley.len()];
                 let mut multi = vec![String::from("0.0"); cayley.len()];
 
                 multi[0] = 
-                    if let Ok(float) = accum[0].parse::<f64>() {
+                    if let Ok(float) = num[0].parse::<f64>() {
                         (1.0 / float).to_string()
                     } else {
-                        format!("(1.0 / ({}))", accum[0])
+                        format!("(1.0 / ({}))", num[0])
                     };
 
 
-                mult(cayley, ops[i], &num, &multi, &mut res);
+                mult(cayley, ops[i], &accum, &multi, &mut res);
 
                 res
                 
             },
             '@' => {
-                get_grade_slice(num, accum[0].parse::<f64>().expect("Expected an explicit integer as the second parameter for @") as usize, cayley.len())
+                get_grade_slice(accum, num[0].parse::<f64>().expect("Expected an explicit integer as the second parameter for @") as usize, cayley.len())
             },
             _ => accum
         };
