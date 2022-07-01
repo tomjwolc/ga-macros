@@ -37,6 +37,12 @@ This library provides 5 macros:
 ### Inputting variables
 > Not implimented yet
 
-All inputed variables are assumed to be Vec<f64> or [f64; len!()] unless prefixed with:
-- **"n_"** => assumed to be some integer or float
-- **"f_"** => assumed to be some function
+All inputed terms are assumed to be (or return) Vec<f64> or [f64; len!()] unless prefixed with: #
+
+Examples (3D VGA):
+```
+let x: usize = 5;
+let y = eq!(e1);
+
+assert_eq!([0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0], eq!(#x * y))
+```
