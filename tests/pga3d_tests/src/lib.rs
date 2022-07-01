@@ -1,4 +1,4 @@
-use macros::*;
+use ga_macros::*;
 
 #[test]
 pub fn simple_numbers() {

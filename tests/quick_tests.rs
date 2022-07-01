@@ -1,5 +1,5 @@
-extern crate macros;
-use macros::*;
+extern crate ga_macros;
+use ga_macros::*;
 
 #[test]
 pub fn tester() {

@@ -1,5 +1,5 @@
 #[macro_use]
-use macros::*;
+use ga_macros::*;
 
 #[test]
 pub fn simple_numbers() {
@@ -24,6 +24,7 @@ pub fn linear_combinations() {
     assert_eq!([1.0, -2.1, 3.0, -4.0, 0.0, 0.0, -3.0, 0.0], eq!(3e1 + -4e2 - 1 - 3e12 + -2.1e0 + 2));
 }
 
+#[allow(dead_code)]
 pub struct A { a: [f64; len!()] }
 
 #[test]
