@@ -47,6 +47,14 @@ pub fn dims(_tokens: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn t(_tokens: TokenStream) -> TokenStream {
+    format!("[f64; {}]", (2 as usize).pow((INFO.algebra.0 + INFO.algebra.1 + INFO.algebra.2) as u32))
+        .as_str()
+        .parse()
+        .unwrap()
+}
+
+#[proc_macro]
 pub fn get_tokens(tokens: TokenStream) -> TokenStream {
     let token_str = format!("{:?}", tokens)
         .replace("\"", "\\\"")
