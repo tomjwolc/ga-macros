@@ -43,6 +43,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ga_macros"
+version = "0.1.0"
+source = "git+https://github.com/tomjwolc/ga-macros#14d314f4dd912ede58e1ed38f95794b39c4540ff"
+dependencies = [
+ "fancy-regex",
+ "lazy_static",
+ "phf",
+ "rand",
+ "regex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -70,19 +84,6 @@ name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
-
-[[package]]
-name = "macros"
-version = "0.1.0"
-source = "git+https://github.com/tomjwolc/ga-rust-macro#7de4f69dc4bd19bcb75ffa39fb119bb8bfa38774"
-dependencies = [
- "fancy-regex",
- "lazy_static",
- "phf",
- "rand",
- "regex",
- "serde_json",
-]
 
 [[package]]
 name = "memchr"
@@ -222,6 +223,20 @@ name = "serde"
 version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.137"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f26faba0c3959972377d3b2d306ee9f71faee9714294e41bb777f83f88578be"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "serde_json"
@@ -261,7 +276,7 @@ checksum = "5bd2fe26506023ed7b5e1e315add59d6f584c621d037f9368fea9cfb988f368c"
 name = "vga3d_tests"
 version = "0.1.0"
 dependencies = [
- "macros",
+ "ga_macros",
 ]
 
 [[package]]

@@ -191,7 +191,9 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
     lazy_static! {
         static ref IMPL_MULT: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
         static ref SIGNED_COEF: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
-        static ref VARIABLES_AND_NUMBERS: Regex = Regex::new(r"[#_a-zA-Z]+([_a-zA-Z0-9\.]*([\(\[][^\]\)]*[\]\)])*)*").unwrap();
+        static ref VARIABLES_AND_NUMBERS: Regex = Regex::new(
+            r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]|[#_a-zA-Z]+([_a-zA-Z0-9\.]*([\(\[][^\]\)]*[\]\)])*)*"
+        ).unwrap();
         static ref ILLEGAL_NAMES: Regex = Regex::new(r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]").unwrap();
     }
 
@@ -203,7 +205,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         SIGNED_COEF.clone(), 
         &mut token_str, 
         ("(", ")"), 
-        |start, mut str| while let Err(_) = &str.parse::<f64>() { *start += 1; str = &str[1..] },
+        |start, _, mut str| while let Err(_) = &str.parse::<f64>() { *start += 1; str = &str[1..] },
         |_| true
     );
 
@@ -211,7 +213,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         VARIABLES_AND_NUMBERS.clone(), 
         &mut token_str, 
         ("\"", "\""), 
-        |_, _| {},
+        |_, end, str| if str.chars().last().expect("") == '(' { *end -= 1 },
         |str| if let Ok(Some(_)) = ILLEGAL_NAMES.find(str) { false } else { true }
     );
 
@@ -597,16 +599,16 @@ fn wrap_parens(num: Vec<String>) -> Vec<String> {
     num.into_iter().map(|part| if let Ok(_) = part.parse::<f64>() { part } else if is_wrapped(&part[..]) { part } else { format!("({})", part) }).collect()
 }
 
-fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_start: fn(&mut usize, &str), conditional: fn(&str) -> bool) {
+fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_bounds: fn(&mut usize, &mut usize, &str), conditional: fn(&str) -> bool) {
     let mut offset = 0;
 
     for mat in regex.find_iter(str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness")) {
         let mut start = offset + mat.start();
-        let end = offset + mat.end();
+        let mut end = offset + mat.end();
 
         let snippet = &str[start..end];
 
-        change_start(&mut start, snippet);
+        change_bounds(&mut start, &mut end, snippet);
 
         if !conditional(&str[start..end]) { continue; }
 

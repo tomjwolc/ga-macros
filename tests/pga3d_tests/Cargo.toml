@@ -6,4 +6,4 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ga_macros = { git = "https://github.com/tomjwolc/ga-macro" }
+ga_macros = { git = "https://github.com/tomjwolc/ga-macros" }
