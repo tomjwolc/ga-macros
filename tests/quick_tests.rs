@@ -18,5 +18,5 @@ pub fn const_test() {
 
 #[test]
 pub fn my_tests() {
-    println!("{:?}", eq_peek!([e + led]^2));
+    println!("{:?}", eq_peek!([~spin_vector[0] * qbits[index][0] + ~spin_vector[1] * qbits[index][1]] ^ 2));
 }

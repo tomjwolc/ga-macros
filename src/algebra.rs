@@ -481,7 +481,7 @@ fn parse_ops(ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize
                     accum[0] = format!("{:?}", f1.powf(f2));
                 } else {
                     println!("{:?}", accum);
-                    accum[0] = format!("{}", accum[0]);
+                    accum[0] = format!("(({}) as f64).powf({})", accum[0], num[0]);
                 }
 
                 accum
