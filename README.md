@@ -8,6 +8,7 @@ A macro for rust that expands arbitrary geometric algebra expressions to an expl
 ## Provided Macros
 
   - **eq:** expands expressions as seen above
+  - **t:** returns the type that eq! expands to: [f64; len!()]
   - **len:** takes no input, expands to the length of each array
   - **dims:** takes no input, expands to the number of dimensions used in the algebra 
   - **eq_peek:** (debug) expands expressions as seen above, but wrapped in quotes so the expansion can be veiwed
