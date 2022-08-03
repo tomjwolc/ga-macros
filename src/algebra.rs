@@ -24,7 +24,7 @@ static PEMDAS: phf::Map<char, usize> = phf_map! {
     '%' => 2,
     '>' => 2,
     '/' => 2,
-    // '^' => 3, // Nope
+    '^' => 3, // Nope
     '@' => 4,
     '~' => 5,
     '!' => 5,
@@ -471,6 +471,15 @@ fn parse_ops(ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize
 
                 res
                 
+            },
+            '^' => {
+                if !num[1..].iter().all(|part| is_zero(part)) || !accum[1..].iter().all(|part| is_zero(part)) { 
+                    panic!("'^' only works with real numbers right now and either num: {:?} or accum: {:?} is not a real number", num, accum);
+                }
+
+                accum[0] = format!("(({}) as f64).powf({})", accum[0], num[0]);
+
+                accum
             },
             '@' => {
                 get_grade_slice(accum, num[0].parse::<f64>().expect("Expected an explicit integer as the second parameter for @") as usize, cayley.len())
