@@ -15,3 +15,8 @@ pub fn expo_test() {
 pub fn const_test() {
     println!("{:?}", eq!(e));
 }
+
+#[test]
+pub fn my_tests() {
+    println!("{:?}", eq_peek!([e + led]^2));
+}
