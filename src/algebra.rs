@@ -31,11 +31,11 @@ static PEMDAS: phf::Map<char, usize> = phf_map! {
 };
 
 static EQ_CONSTS: phf::Map<&'static str, fn(usize) -> String> = phf_map! {
-    "RAND" => |_index| {let mut rng = rand::thread_rng(); format!("{}", rng.gen::<f64>())},
+    "RAND" => |_index| {let mut rng = rand::thread_rng(); format!("{:?}", rng.gen::<f64>())},
     "ONES" => |_index| String::from("1.0"),
-    "e"    => | index| format!("{}", if index == 0 { E   } else { 0.0 } ),
-    "pi"   => | index| format!("{}", if index == 0 { PI  } else { 0.0 } ),
-    "tau"  => | index| format!("{}", if index == 0 { TAU } else { 0.0 } ),
+    "e"    => | index| format!("{:?}", if index == 0 { E   } else { 0.0 } ),
+    "pi"   => | index| format!("{:?}", if index == 0 { PI  } else { 0.0 } ),
+    "tau"  => | index| format!("{:?}", if index == 0 { TAU } else { 0.0 } ),
 };
 
 static FUNCS: phf::Map<&'static str, fn(Vec<String>) -> (Vec<String>, Vec<String>)> = phf_map! {
@@ -463,7 +463,7 @@ fn parse_ops(ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize
                     if let Ok(float) = num[0].parse::<f64>() {
                         (1.0 / float).to_string()
                     } else {
-                        format!("(1.0 / ({}))", num[0])
+                        format!("(1.0 / ({:?}))", num[0])
                     };
 
 
@@ -478,9 +478,9 @@ fn parse_ops(ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize
                 }
 
                 if let (Ok(f1), Ok(f2)) = (accum[0].parse::<f64>(), num[0].parse::<f64>()) {
-                    accum[0] = format!("{}", f1.powf(f2));
+                    accum[0] = format!("{:?}", f1.powf(f2));
                 } else {
-                    accum[0] = format!("(({}) as f64).powf({})", accum[0], num[0]);
+                    accum[0] = format!("(({:?}) as f64).powf({:?})", accum[0], num[0]);
                 }
 
                 accum

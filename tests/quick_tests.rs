@@ -10,3 +10,8 @@ pub fn tester() {
 pub fn expo_test() {
     println!("{:?}", eq!(2^0.5))
 }
+
+#[test]
+pub fn const_test() {
+    println!("{:?}", eq!(e));
+}
