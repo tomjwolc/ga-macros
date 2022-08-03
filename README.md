@@ -36,6 +36,7 @@ println!("{:?}", eq!(f(3.0) @ 1 + arr[0] @ 2)); // -> println!("{:?}", {[0.0, f(
 - **'%'** => Join
 - **'>'** => Sandwich product
 - **'/'** => Division (divisor must be a real number)
+- **'^'** => Exponentiation (only works with real numbers right now)
 - **'@'** => Grade select (selector must a real number s.t. 0 <= n <= dims!())
 - **'~'** => Reverse
 - **'!'** => Dual
