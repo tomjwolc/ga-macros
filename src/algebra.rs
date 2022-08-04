@@ -670,7 +670,7 @@ fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_boun
 
         if start < last_bound || !change_bounds(&mut start, &mut end, str) { continue; }
 
-        if end >= str.len() { continue; }
+        if end > str.len() { continue; }
 
         let init_size = str.len();
 
