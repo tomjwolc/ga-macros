@@ -219,17 +219,19 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         &mut token_str, 
         ("\"", "\""), 
         |start, end, str| {
-            if str.chars().last().expect("") == '(' { *end -= 1; return false; }
+            println!("\"{}\": ", &str[*start..*end]);
+
+            if str[*start..*end].chars().last().expect("") == '(' { *end -= 1; return false; }
+
+            if !str[*start..*end].contains("[") && !str[*start..*end].contains("(") { return true; }
 
             let mut paren_depth = 1;
             let mut index = *start;
             let mut goal: Option<(&str, &str)> = None;
 
-            println!("\"{}\": ", str);
-
             while goal == None {
                 index += 1;
-                
+
                 if index >= str.len() { return false; }
 
                 println!("goal: {:?} char: {}", goal, &str[index..index+1]);
@@ -660,18 +662,23 @@ fn wrap_parens(num: Vec<String>) -> Vec<String> {
 
 fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_bounds: fn(&mut usize, &mut usize, &str) -> bool) {
     let mut offset = 0;
+    let mut last_bound = 0;
 
     for mat in regex.find_iter(str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness")) {
         let mut start = offset + mat.start();
         let mut end = offset + mat.end();
 
-        if !change_bounds(&mut start, &mut end, str) { continue; }
+        println!("\"{}\": last_bound = {}", str, last_bound);
+
+        if start < last_bound || !change_bounds(&mut start, &mut end, str) { continue; }
 
         let init_size = str.len();
 
         *str = format!("{}{}{}{}{}", &str[..start], wrapper.0, &str[start..end], wrapper.1, &str[end..]);
 
+        last_bound = end - offset;
         offset += str.len() - init_size;
+        last_bound += offset;
     }
 }
 
