@@ -207,6 +207,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         ("(", ")"), 
         |start, _, mut str| { 
             while let Err(_) = &str.parse::<f64>() { 
+                println!("str");
                 *start += 1; 
                 str = &str[1..];
             }; 
@@ -234,8 +235,6 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
 
                 if index >= str.len() { return false; }
 
-                println!("goal: {:?} char: {}", goal, &str[index..index+1]);
-
                 if &str[index..index+1] == "[" {
                     goal = Some(("[", "]"))
                 } else if &str[index..index+1] == "(" {
@@ -247,8 +246,6 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
                 index += 1;
 
                 if index >= str.len() { return false; }
-
-                println!("depth: {} char: {}", paren_depth, &str[index..index+1]);
 
                 paren_depth += match &str[index..index+1] {
                     char if char == goal.unwrap().0 => 1,
@@ -262,7 +259,6 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
             true
         }
     );
-    println!("tokens: {}", token_str);
 
     tokens = token_str.parse().expect("Could not parse tokens after regex");
 
@@ -669,8 +665,6 @@ fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_boun
         let mut end = offset + mat.end();
 
         if start < last_bound || !change_bounds(&mut start, &mut end, str) { continue; }
-
-        if end > str.len() { println!("coninuing"); continue; }
 
         let init_size = str.len();
 
