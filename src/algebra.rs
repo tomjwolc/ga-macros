@@ -242,13 +242,11 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
                 }
             }
 
-            while &str[index..index+1] == "[" || &str[index-1..index+1] == "(" {
+            while index < str.len() && ( &str[index..index+1] == "[" || &str[index-1..index+1] == "(" ) {
                 let mut paren_depth = 1;
-                
+
                 while paren_depth > 0 {
                     index += 1;
-
-                    println!("{}: {}", index, &str[index..index+1]);
     
                     if index >= str.len() { return false; }
     
@@ -261,8 +259,6 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
                 }
 
                 index += 1;
-
-                println!("{}: {}", index, &str[index..index+1]);
             }
 
             *end = index;
