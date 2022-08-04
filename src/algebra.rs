@@ -220,7 +220,12 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         |start, end, str| {
             println!("\"{}\": ", &str[*start..*end]);
 
-            if str[*start..*end].chars().last().expect("") == '(' { *end -= 1; return false; }
+            if str[*start..*end].chars().last().expect("") == '(' { 
+                *end -= 1; 
+                return true; 
+            } else if let Ok(Some(_)) = ILLEGAL_NAMES.find(&str[*start..*end]) {
+                return false;
+            }
 
             if !str[*start..*end].contains("[") && !str[*start..*end].contains("(") { return true; }
 
