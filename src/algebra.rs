@@ -205,17 +205,62 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         SIGNED_COEF.clone(), 
         &mut token_str, 
         ("(", ")"), 
-        |start, _, mut str| while let Err(_) = &str.parse::<f64>() { *start += 1; str = &str[1..] },
-        |_| true
+        |start, _, mut str| { 
+            while let Err(_) = &str.parse::<f64>() { 
+                *start += 1; 
+                str = &str[1..];
+            }; 
+            true 
+        },
     );
 
     wrap_regex(
         VARIABLES_AND_NUMBERS.clone(), 
         &mut token_str, 
         ("\"", "\""), 
-        |_, end, str| if str.chars().last().expect("") == '(' { *end -= 1 },
-        |str| if let Ok(Some(_)) = ILLEGAL_NAMES.find(str) { false } else { true }
+        |start, end, str| {
+            if str.chars().last().expect("") == '(' { *end -= 1; return false; }
+
+            let mut paren_depth = 1;
+            let mut index = *start;
+            let mut goal: Option<(&str, &str)> = None;
+
+            println!("\"{}\": ", str);
+
+            while goal == None {
+                index += 1;
+                
+                if index >= str.len() { return false; }
+
+                println!("goal: {:?} char: {}", goal, &str[index..index+1]);
+
+                if &str[index..index+1] == "[" {
+                    goal = Some(("[", "]"))
+                } else if &str[index..index+1] == "(" {
+                    goal = Some(("(", ")"))
+                }
+            }
+
+            while paren_depth > 0 {
+                index += 1;
+
+                if index >= str.len() { return false; }
+
+                println!("depth: {} char: {}", paren_depth, &str[index..index+1]);
+
+                paren_depth += match &str[index..index+1] {
+                    char if char == goal.unwrap().0 => 1,
+                    char if char == goal.unwrap().1 => -1,
+                    _ => 0
+                }
+            }
+
+            *end = index + 1;
+
+            true
+        }
     );
+    println!("tokens: {}", token_str);
 
     tokens = token_str.parse().expect("Could not parse tokens after regex");
 
@@ -613,18 +658,14 @@ fn wrap_parens(num: Vec<String>) -> Vec<String> {
     num.into_iter().map(|part| if let Ok(_) = part.parse::<f64>() { part } else if is_wrapped(&part[..]) { part } else { format!("({})", part) }).collect()
 }
 
-fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_bounds: fn(&mut usize, &mut usize, &str), conditional: fn(&str) -> bool) {
+fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_bounds: fn(&mut usize, &mut usize, &str) -> bool) {
     let mut offset = 0;
 
     for mat in regex.find_iter(str.clone().as_str()).map(|mat| mat.expect("find_iter weirdness")) {
         let mut start = offset + mat.start();
         let mut end = offset + mat.end();
 
-        let snippet = &str[start..end];
-
-        change_bounds(&mut start, &mut end, snippet);
-
-        if !conditional(&str[start..end]) { continue; }
+        if !change_bounds(&mut start, &mut end, str) { continue; }
 
         let init_size = str.len();
 
