@@ -205,11 +205,9 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         SIGNED_COEF.clone(), 
         &mut token_str, 
         ("(", ")"), 
-        |start, _, mut str| { 
-            while let Err(_) = &str.parse::<f64>() { 
-                println!("{}", str);
+        |start, end, str| { 
+            while let Err(_) = &str[*start..*end].parse::<f64>() {
                 *start += 1; 
-                str = &str[1..];
             }; 
             true 
         },
