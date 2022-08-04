@@ -45,7 +45,7 @@ dependencies = [
 [[package]]
 name = "ga_macros"
 version = "0.1.0"
-source = "git+https://github.com/tomjwolc/ga-macros#2825e833c6bf7e5f1a27dc2ee74a3a21047bd344"
+source = "git+https://github.com/tomjwolc/ga-macros#f714fbc8b26fa8c007e04a47b8434c33b12d2eb4"
 dependencies = [
  "fancy-regex",
  "lazy_static",

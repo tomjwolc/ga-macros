@@ -668,9 +668,9 @@ fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_boun
         let mut start = offset + mat.start();
         let mut end = offset + mat.end();
 
-        println!("\"{}\": last_bound = {}", str, last_bound);
-
         if start < last_bound || !change_bounds(&mut start, &mut end, str) { continue; }
+
+        if end >= str.len() { println!("yep here") }
 
         let init_size = str.len();
 
