@@ -18,5 +18,5 @@ use ga_macros::*;
 
 #[test]
 pub fn my_tests() {
-    println!("{:?}", eq_peek!(tensor[i] * tensor[end]));
+    println!("{:?}", eq_peek!((tensor[i + divisor_index] * ~tensor[divisor_index]) / #divisor));
 }

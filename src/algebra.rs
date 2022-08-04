@@ -513,7 +513,7 @@ fn parse_ops(ops: Vec<char>, mut nums: Vec<Vec<String>>, cayley: &Vec<Vec<(usize
                     if let Ok(float) = num[0].parse::<f64>() {
                         (1.0 / float).to_string()
                     } else {
-                        format!("(1.0 / ({:?}))", num[0])
+                        format!("(1.0 / ({}))", num[0])
                     };
 
 
