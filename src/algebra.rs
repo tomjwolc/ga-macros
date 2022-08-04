@@ -218,9 +218,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         &mut token_str, 
         ("\"", "\""), 
         |start, end, str| {
-            println!("\"{}\": ", &str[*start..*end]);
-
-            if str[*start..*end].chars().last().expect("") == '(' { 
+            if str[*start..*end].chars().last().expect("") == '(' ||  str[*start..*end].chars().last().expect("") == '[' { 
                 *end -= 1; 
                 return true; 
             } else if let Ok(Some(_)) = ILLEGAL_NAMES.find(&str[*start..*end]) {
@@ -229,7 +227,6 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
 
             if !str[*start..*end].contains("[") && !str[*start..*end].contains("(") { return true; }
 
-            let mut paren_depth = 1;
             let mut index = *start;
             let mut goal: Option<(&str, &str)> = None;
 
@@ -245,19 +242,30 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
                 }
             }
 
-            while paren_depth > 0 {
+            while &str[index..index+1] == "[" || &str[index-1..index+1] == "(" {
+                let mut paren_depth = 1;
+                
+                while paren_depth > 0 {
+                    index += 1;
+
+                    println!("{}: {}", index, &str[index..index+1]);
+    
+                    if index >= str.len() { return false; }
+    
+                    paren_depth += match &str[index..index+1] {
+                        char if char == goal.unwrap().0 => 1,
+                        char if char == goal.unwrap().1 => -1,
+                        _ => 0
+                    }
+
+                }
+
                 index += 1;
 
-                if index >= str.len() { return false; }
-
-                paren_depth += match &str[index..index+1] {
-                    char if char == goal.unwrap().0 => 1,
-                    char if char == goal.unwrap().1 => -1,
-                    _ => 0
-                }
+                println!("{}: {}", index, &str[index..index+1]);
             }
 
-            *end = index + 1;
+            *end = index;
 
             true
         }

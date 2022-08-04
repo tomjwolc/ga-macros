@@ -18,5 +18,5 @@ use ga_macros::*;
 
 #[test]
 pub fn my_tests() {
-    println!("{:?}", eq_peek!(a + tensor[i] * tensor[tensor.len() - i - 1]));
+    println!("{:?}", eq_peek!([ qbits[*index][0] ] ^ 2));
 }
