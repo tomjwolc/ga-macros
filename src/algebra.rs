@@ -207,7 +207,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         ("(", ")"), 
         |start, _, mut str| { 
             while let Err(_) = &str.parse::<f64>() { 
-                println!("str");
+                println!("{}", str);
                 *start += 1; 
                 str = &str[1..];
             }; 
