@@ -27,6 +27,10 @@ let arr = vec![eq!(5e1 + 2e01 + 4e12)];       // -> let arr = vec![{[0.0, 0.0, 5
 println!("{:?}", eq!(f(3.0) @ 1 + arr[0] @ 2)); // -> println!("{:?}", {[0.0, f(3.0)[1], f(3.0)[2], f(3.0)[3], arr[0][4], arr[0][5], arr[0][6], 0.0]})
 ```
 
+### Using other algebras inline
+
+do this later
+
 ## Eq! Operations (in order of execution last to first)
 - **'+'** => Addition
 - **'-'** => Subtraction
