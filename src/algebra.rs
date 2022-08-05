@@ -188,7 +188,7 @@ pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream, 
         .expect("eq_peek: parsing failed")
 }
 
-pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, alt_labels: &Option<Vec<String>>) -> TokenStream {
+pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, mut alt_labels: &Option<Vec<String>>) -> TokenStream {
     lazy_static! {
         static ref IMPL_MULT: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
         static ref SIGNED_COEF: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
@@ -213,28 +213,32 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
     ) = get_cayley(algebra);
 
     if let Some(Punct(ref punct)) = token_vec.get(1) {
-        println!("found punct");
+        // println!("found punct");
         if punct.as_char() == ':' {
-            println!("found colon");
+            // println!("found colon");
             match token_vec[0].to_string().replace(" ", "").replace("\"", "").as_str() {
                 "int" => num_formatter = |num| format!("({} as isize)", num[0]),
                 "float" => num_formatter = |num| format!("{}", num[0]),
                 "complex" => {
-                    println!("found complex");
+                    // println!("found complex");
                     (
                         cayley, 
-                        labels
+                        _
                     ) = get_cayley((0, 1, 0));
+
+                    labels = vec![String::from(""), String::from("i")];
+                    alt_labels = &None;
                 },
                 str => {
                     if str.contains(",") {
-                        println!("found new algebra: {}, {:?}", str, &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..]);
+                        // println!("found new algebra: {}, {:?}", str, &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..]);
                         if let &[Ok(p), Ok(n), Ok(q)] = &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..] {
-                            println!("doing new algebra: ({}, {}, {})", p, n, q);
+                            // println!("doing new algebra: ({}, {}, {})", p, n, q);
                             (
                                 cayley, 
                                 labels
                             ) = get_cayley((p, n, q));
+                            alt_labels = &None;
                         }
                     }
                 }
@@ -322,6 +326,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
 
     labels = if let Some(arr) = alt_labels.clone() { arr } else { labels };
 
+    // println!("{:?}", labels);
     let (defs, result) = simplify(&tokens, &cayley, &labels);
 
     format!("{{{}{}}}", defs.iter().fold(String::new(), |acc, def| format!("{}{}", acc, def)), num_formatter(result))

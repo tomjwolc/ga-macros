@@ -18,5 +18,5 @@ use ga_macros::*;
 
 #[test]
 pub fn my_tests() {
-    println!("{:?}", eq_peek!("complex": z * ~z));
+    println!("{:?}", eq_peek!("complex": i));
 }
