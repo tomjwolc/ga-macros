@@ -8,6 +8,7 @@ use phf::phf_map;
 use rand::prelude::*;
 
 use std::f64::consts::*;
+use std::num::{ParseFloatError, ParseIntError};
 use std::ops;
 
 use fancy_regex::Regex;
@@ -197,6 +198,54 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
         static ref ILLEGAL_NAMES: Regex = Regex::new(r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]").unwrap();
     }
 
+    let mut token_vec: Vec<TokenTree> = tokens.into_iter().collect();
+    let mut num_formatter: fn(Vec<String>) -> String = |num| {
+        format!("[{}]",
+            num[1..]
+                .iter()
+                .fold(format!("{}", num[0]), |acc, part| format!("{}, {}", acc, part))
+        )   
+    };
+
+    let (
+        mut cayley, 
+        mut labels
+    ) = get_cayley(algebra);
+
+    if let Some(Punct(ref punct)) = token_vec.get(1) {
+        println!("found punct");
+        if punct.as_char() == ':' {
+            println!("found colon");
+            match token_vec[0].to_string().replace(" ", "").replace("\"", "").as_str() {
+                "int" => num_formatter = |num| format!("({} as isize)", num[0]),
+                "float" => num_formatter = |num| format!("{}", num[0]),
+                "complex" => {
+                    println!("found complex");
+                    (
+                        cayley, 
+                        labels
+                    ) = get_cayley((0, 1, 0));
+                },
+                str => {
+                    if str.contains(",") {
+                        println!("found new algebra: {}, {:?}", str, &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..]);
+                        if let &[Ok(p), Ok(n), Ok(q)] = &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..] {
+                            println!("doing new algebra: ({}, {}, {})", p, n, q);
+                            (
+                                cayley, 
+                                labels
+                            ) = get_cayley((p, n, q));
+                        }
+                    }
+                }
+            }
+
+            token_vec = token_vec[2..].to_vec();
+        }
+    }
+
+    tokens = token_vec.into_iter().collect();
+
     let mut token_str = tokens.to_string().replace(" ", "");
 
     token_str = IMPL_MULT.replace_all(token_str.as_str(), "*").to_string();
@@ -270,34 +319,6 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, a
     tokens = token_str.parse().expect("Could not parse tokens after regex");
 
     // return format!("\"{}\"", tokens.to_string()).as_str().parse().unwrap();
-
-    let (
-        cayley, 
-        mut labels
-    ) = get_cayley(algebra);
-
-    let mut token_vec: Vec<TokenTree> = tokens.into_iter().collect();
-    let mut num_formatter: fn(Vec<String>) -> String = |num| {
-        format!("[{}]",
-            num[1..]
-                .iter()
-                .fold(format!("{}", num[0]), |acc, part| format!("{}, {}", acc, part))
-        )   
-    };
-
-    if let Some(Punct(ref punct)) = token_vec.get(1) {
-        if punct.as_char() == ':' {
-            match token_vec[0].to_string().as_str() {
-                "int" => num_formatter = |num| format!("({} as isize)", num[0]),
-                "float" => num_formatter = |num| format!("{}", num[0]),
-                _ => ()
-            }
-
-            token_vec = token_vec[2..].to_vec();
-        }
-    }
-
-    tokens = token_vec.into_iter().collect();
 
     labels = if let Some(arr) = alt_labels.clone() { arr } else { labels };
 

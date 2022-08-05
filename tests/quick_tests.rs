@@ -1,7 +1,7 @@
 extern crate ga_macros;
 use ga_macros::*;
 
-#[test]
+// #[test]
 // pub fn tester() {
 //     println!("{:?}", eq!(norm(e1))); // tests labels in algebra.json
 // }
@@ -18,5 +18,5 @@ use ga_macros::*;
 
 #[test]
 pub fn my_tests() {
-    println!("{:?}", eq_peek!((tensor[i + divisor_index] * ~tensor[divisor_index]) / #divisor));
+    println!("{:?}", eq_peek!("complex": z * ~z));
 }
