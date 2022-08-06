@@ -29,7 +29,11 @@ println!("{:?}", eq!(f(3.0) @ 1 + arr[0] @ 2)); // -> println!("{:?}", {[0.0, f(
 
 ### Using other algebras inline
 
-do this later
+A different algebra can be specified for use at the begining of a macro call
+```
+let a = eq!("2, 0, 1": 1 + e1); // 2d pga 
+let b = eq!("complex": 1 - i); // complex numbers
+```
 
 ## Eq! Operations (in order of execution last to first)
 - **'+'** => Addition
