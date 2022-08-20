@@ -16,21 +16,23 @@ A macro for rust that expands arbitrary geometric algebra expressions to an expl
   
 ## Example Expansions
 3D VGA: 
-```
-let a = eq!(3e0 + -2e12);     // -> let a = {[0.0, 3.0, 0.0, 0.0, 0.0, 0.0, -2.0, 0.0]};
-let b = eq!(2 - 6e1 + e12);   // -> let b = {[2.0, 0.0, -6.0, 0.0, 0.0, 0.0, 1.0, 0.0]};
+```rust
+let a = eq!(3*e0 + -2*e12);     // -> let a = {[0.0, 3.0, 0.0, 0.0, 0.0, 0.0, -2.0, 0.0]};
+let b = eq!(2 - 6*e1 + e12);   // -> let b = {[2.0, 0.0, -6.0, 0.0, 0.0, 0.0, 1.0, 0.0]};
 println!("{:?}", eq!(a + b)); // -> println!("{:?}", {[a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4], a[5] + b[5], a[6] + b[6], a[7] + b[7]]});
 ```
-```
-let f = |a: f64| eq!(#a + #a * e1);           // -> let f = |a: f64| {[(a as f64), 0.0, (a as f64), 0.0, 0.0, 0.0, 0.0, 0.0]}
-let arr = vec![eq!(5e1 + 2e01 + 4e12)];       // -> let arr = vec![{[0.0, 0.0, 5.0, 0.0, 2.0, 0.0, 4.0, 0.0]}]
-println!("{:?}", eq!(f(3.0) @ 1 + arr[0] @ 2)); // -> println!("{:?}", {[0.0, f(3.0)[1], f(3.0)[2], f(3.0)[3], arr[0][4], arr[0][5], arr[0][6], 0.0]})
+
+Complex numbers:
+```rust
+let f = |a: f64| eq!(#a + #a * i);           // -> let f = |a: f64| {[(a as f64), (a as f64)]}
+let arr = vec![eq!(5 + 2*i)];       // -> let arr = vec![{[0.0, 0.0, 5.0, 0.0, 2.0, 0.0, 4.0, 0.0]}]
+println!("{:?}", eq!(f(3.0) @ 1 + arr[0] @ 0)); // -> println!("{:?}", {[arr[0][0], f(3.0)[1]]})
 ```
 
 ### Using other algebras inline
 
 A different algebra can be specified for use at the begining of a macro call
-```
+```rust
 let a = eq!("2, 0, 1": 1 + e1); // 2d pga 
 let b = eq!("complex": 1 - i); // complex numbers
 ```
@@ -53,7 +55,7 @@ let b = eq!("complex": 1 - i); // complex numbers
 All inputed terms are assumed to be (or return) Vec<f64> or [f64; len!()] unless prefixed with: #
 
 Example (3D VGA):
-```
+```rust
 let x: usize = 5;
 let y = eq!(e1);
 
