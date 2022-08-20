@@ -196,6 +196,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, m
             r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]|[#_a-zA-Z]+([_a-zA-Z0-9\.]*([\(\[][^\]\)]*[\]\)])*)*"
         ).unwrap();
         static ref ILLEGAL_NAMES: Regex = Regex::new(r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]").unwrap();
+        static ref FUNCTION_REGEX: Regex = Regex::new(r"[#_a-zA-Z]+([_a-zA-Z0-9\.]*[\(\[])").unwrap();
     }
 
     let mut token_vec: Vec<TokenTree> = tokens.into_iter().collect();
@@ -252,51 +253,22 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, m
 
     let mut token_str = tokens.to_string().replace(" ", "");
 
-    token_str = IMPL_MULT.replace_all(token_str.as_str(), "*").to_string();
-
+    // wrap entire functions 
     wrap_regex(
-        SIGNED_COEF.clone(), 
-        &mut token_str, 
-        ("(", ")"), 
-        |start, end, str| { 
-            while let Err(_) = &str[*start..*end].parse::<f64>() {
-                *start += 1; 
-            }; 
-            true 
-        },
-    );
-
-    wrap_regex(
-        VARIABLES_AND_NUMBERS.clone(), 
+        FUNCTION_REGEX.clone(), 
         &mut token_str, 
         ("\"", "\""), 
+        vec![("\"", "\\\"")],
         |start, end, str| {
-            if str[*start..*end].chars().last().expect("") == '(' ||  str[*start..*end].chars().last().expect("") == '[' { 
-                *end -= 1; 
-                return true; 
-            } else if let Ok(Some(_)) = ILLEGAL_NAMES.find(&str[*start..*end]) {
-                return false;
-            }
-
-            if !str[*start..*end].contains("[") && !str[*start..*end].contains("(") { return true; }
-
             let mut index = *start;
-            let mut goal: Option<(&str, &str)> = None;
 
-            while goal == None {
+            while index < str.len() && !( &str[index..index+1] == "[" || &str[index..index+1] == "(" ) {
                 index += 1;
-
-                if index >= str.len() { return false; }
-
-                if &str[index..index+1] == "[" {
-                    goal = Some(("[", "]"))
-                } else if &str[index..index+1] == "(" {
-                    goal = Some(("(", ")"))
-                }
             }
 
-            while index < str.len() && ( &str[index..index+1] == "[" || &str[index-1..index+1] == "(" ) {
+            while index < str.len() && ( &str[index..index+1] == "[" || &str[index..index+1] == "(" ){
                 let mut paren_depth = 1;
+                index += 1;
 
                 while paren_depth > 0 {
                     index += 1;
@@ -304,17 +276,15 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, m
                     if index >= str.len() { return false; }
     
                     paren_depth += match &str[index..index+1] {
-                        char if char == goal.unwrap().0 => 1,
-                        char if char == goal.unwrap().1 => -1,
+                        "[" | "(" => 1,
+                        "]" | ")" => -1,
                         _ => 0
                     }
 
                 }
-
-                index += 1;
             }
 
-            *end = index;
+            *end = index + 1;
 
             true
         }
@@ -380,42 +350,42 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
                 ops_blocks[last_index].push(punct.as_char());
             },
             Ident(ident) => {
-                panic!("There shouldn't be any Idents left? Ident: {:?}", ident);
+                // panic!("There shouldn't be any Idents left? Ident: {:?}", ident);
 
-                // // the variable is a number, not an array
-                // if ident.to_string().chars().nth(0).unwrap() == '_' {
-                //     let mut num = vec![String::from("0.0"); cayley.len()];
-                //     num[0] = format!("({} as f64)", &ident.to_string()[1..]);
-                //     nums_blocks[last_index].push(num);
-                //     continue;
-                // }
+                // the variable is a number, not an array
+                if ident.to_string().chars().nth(0).unwrap() == '_' {
+                    let mut num = vec![String::from("0.0"); cayley.len()];
+                    num[0] = format!("({} as f64)", &ident.to_string()[1..]);
+                    nums_blocks[last_index].push(num);
+                    continue;
+                }
 
-                // // the ident matches a basis k-vector label
-                // if let Some(index) = labels.iter().position(|label| label == &ident.to_string()) {
-                //     let mut num = vec![String::from("0.0"); cayley.len()];
-                //     num[index] = String::from("1.0");
-                //     nums_blocks[last_index].push(num);
-                //     continue;
-                // }
+                // the ident matches a basis k-vector label
+                if let Some(index) = labels.iter().position(|label| label == &ident.to_string()) {
+                    let mut num = vec![String::from("0.0"); cayley.len()];
+                    num[index] = String::from("1.0");
+                    nums_blocks[last_index].push(num);
+                    continue;
+                }
 
-                // // the ident is a constant
-                // if let Some(func) = EQ_CONSTS.get(ident.to_string().as_str()) {
-                //     let mut num = vec![String::from("0.0"); cayley.len()];
-                //     num = num.iter().enumerate().map(|(i, _)| func(i)).collect();
-                //     nums_blocks[last_index].push(num);
-                //     continue;
-                // }
+                // the ident is a constant
+                if let Some(func) = EQ_CONSTS.get(ident.to_string().as_str()) {
+                    let mut num = vec![String::from("0.0"); cayley.len()];
+                    num = num.iter().enumerate().map(|(i, _)| func(i)).collect();
+                    nums_blocks[last_index].push(num);
+                    continue;
+                }
 
-                // // the ident is a function
-                // if let Some(func) = FUNCS.get(ident.to_string().as_str()) {
-                //     function = Some(func);
-                //     continue;
-                // }
+                // the ident is a function
+                if let Some(func) = FUNCS.get(ident.to_string().as_str()) {
+                    function = Some(func);
+                    continue;
+                }
 
-                // let symb = ident.to_string();
-                // let num: Vec<String> = vec![0.0; cayley.len()].iter().enumerate().map(|(i, _)| format!("{}[{}]", symb, i)).collect();
+                let symb = ident.to_string();
+                let num: Vec<String> = vec![0.0; cayley.len()].iter().enumerate().map(|(i, _)| format!("{}[{}]", symb, i)).collect();
 
-                // nums_blocks[last_index].push(num);
+                nums_blocks[last_index].push(num);
             },
             Literal(literal) => {
                 let mut num = vec![String::from("0.0"); cayley.len()];
@@ -425,8 +395,10 @@ fn simplify(tokens: &TokenStream, cayley: &Vec<Vec<(usize, f64, f64, f64)>>, lab
     
                     if !num[0].contains('.') {num[0] += ".0"}   
                 } else { // idents an array
-                    let symb: String = literal.to_string().replace(" ", "").replace("\\", "").replace("\"", "");
+                    let mut symb: String = literal.to_string().replace(" ", "").replace("\\\\", "\\").replace("\\\"", "\"");
+                    symb = symb[1..symb.len() - 1].to_string();
                     
+                    // kinda irrelevant now lol
                     if &symb[0..1] == "#" { // ---------------------------------------------------------------------- symb is a number
                         num[0] = format!("({} as f64)", &symb[1..]);
                     } else if let Some(index) = labels.iter().position(|label| label == &symb) { // - symb is a basis k-vector
@@ -689,7 +661,7 @@ fn wrap_parens(num: Vec<String>) -> Vec<String> {
     num.into_iter().map(|part| if let Ok(_) = part.parse::<f64>() { part } else if is_wrapped(&part[..]) { part } else { format!("({})", part) }).collect()
 }
 
-fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_bounds: fn(&mut usize, &mut usize, &str) -> bool) {
+fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), text_replacements: Vec<(&str, &str)>, change_bounds: fn(&mut usize, &mut usize, &str) -> bool) {
     let mut offset = 0;
     let mut last_bound = 0;
 
@@ -701,7 +673,13 @@ fn wrap_regex(regex: Regex, str: &mut String, wrapper: (&str, &str), change_boun
 
         let init_size = str.len();
 
-        *str = format!("{}{}{}{}{}", &str[..start], wrapper.0, &str[start..end], wrapper.1, &str[end..]);
+        let mut wrapped = str[start..end].to_string();
+
+        for text_replacement in text_replacements.iter() { 
+            wrapped = wrapped.replace(text_replacement.0, text_replacement.1);
+        }
+
+        *str = format!("{}{}{}{}{}", &str[..start], wrapper.0, wrapped, wrapper.1, &str[end..]);
 
         last_bound = end - offset;
         offset += str.len() - init_size;
@@ -723,6 +701,24 @@ fn is_wrapped(mut str: &str) -> bool {
     }
 
     paren_depth == 0
+}
+
+fn get_type(char: char) -> (char, char) {
+    lazy_static! {
+        static ref LETTER: Regex = Regex::new(r"[A-Za-z]").unwrap();
+        static ref OPERATOR: Regex = Regex::new(r"[\+\-\*\|&%>\/\^@~!]").unwrap();
+        static ref NUMBER: Regex = Regex::new(r"[0-9]").unwrap();
+    }
+
+    if LETTER.is_match(char.to_string().as_str()).expect("Something went wrong with letter regex") {
+        ('l', char)
+    } else if OPERATOR.is_match(char.to_string().as_str()).expect("Something went wrong with operator regex") {
+        ('o', char)
+    } else if NUMBER.is_match(char.to_string().as_str()).expect("Something went wrong with number regex") {
+        ('n', char)
+    } else {
+        ('a', char)
+    }
 }
 
 fn get_rand_def_id() -> String {
