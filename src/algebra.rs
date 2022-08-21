@@ -233,7 +233,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, m
                 str => {
                     if str.contains(",") {
                         // println!("found new algebra: {}, {:?}", str, &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..]);
-                        if let &[Ok(p), Ok(n), Ok(q)] = &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..] {
+                        if let [Ok(p), Ok(n), Ok(q)] = str.split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..] {
                             // println!("doing new algebra: ({}, {}, {})", p, n, q);
                             (
                                 cayley, 

@@ -21,7 +21,7 @@ pub fn my_tests() {
     let z = |_: &str| [0.0, 5.0];
 
 
-    println!("{:?}", eq!("complex": 2*i));
+    println!("{:?}", eq_peek!("1, 0, 0": 2 + 2*e1));
     println!("{:?}", eq!("complex": 1 + z("abcd")));
     println!("{:?}", eq_peek!("complex": abcd(efgh(38743 + g(284))[2]+-=&4ij[2nf[3 + e(7)]])));
     println!("{:?}", eq_peek!("complex": abcd(efgh+-=&4ij)(k)[lmn](o)[p][q]));
