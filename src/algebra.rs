@@ -190,12 +190,6 @@ pub fn eq_macro_logic_peek(algebra: (usize, usize, usize), tokens: TokenStream, 
 
 pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, mut alt_labels: &Option<Vec<String>>) -> TokenStream {
     lazy_static! {
-        static ref IMPL_MULT: Regex = Regex::new(r"(?<=[0-9])(?=[a-zA-Z])").unwrap();
-        static ref SIGNED_COEF: Regex = Regex::new(r"[^0-9a-zA-Z ][+-][0-9]+\.[0-9]+|[^0-9a-zA-Z ][+-][0-9]+").unwrap();
-        static ref VARIABLES_AND_NUMBERS: Regex = Regex::new(
-            r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]|[#_a-zA-Z]+([_a-zA-Z0-9\.]*([\(\[][^\]\)]*[\]\)])*)*"
-        ).unwrap();
-        static ref ILLEGAL_NAMES: Regex = Regex::new(r"(motor|norm|norm_w|norm_b|bulk|weight)[\(\[]").unwrap();
         static ref FUNCTION_REGEX: Regex = Regex::new(r"[#_a-zA-Z]+([_a-zA-Z0-9\.]*[\(\[])").unwrap();
     }
 
@@ -232,7 +226,7 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, m
                 },
                 str => {
                     if str.contains(",") {
-                        // println!("found new algebra: {}, {:?}", str, &str[1..str.len() - 1].split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..]);
+                        // println!("found new algebra: {}, {:?}", str, &str[1..str.len() - 1]);
                         if let [Ok(p), Ok(n), Ok(q)] = str.split(",").map(|n| n.parse::<usize>()).collect::<Vec<Result<usize, ParseIntError>>>()[..] {
                             // println!("doing new algebra: ({}, {}, {})", p, n, q);
                             (
@@ -260,6 +254,12 @@ pub fn eq_macro_logic(algebra: (usize, usize, usize), mut tokens: TokenStream, m
         ("\"", "\""), 
         vec![("\"", "\\\"")],
         |start, end, str| {
+            // don't convert ga functions to literals
+            if let Some(_) = FUNCS.get(&str[*start..*end - 1]) { 
+                *end -= 1;
+                return true;
+            }
+
             let mut index = *start;
 
             while index < str.len() && !( &str[index..index+1] == "[" || &str[index..index+1] == "(" ) {
